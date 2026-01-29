@@ -134,7 +134,7 @@ foreach ($Friend in $FriendsList) {
         foreach ($MatchId in $MatchIds) {
             # On vide les variables du match précédent pour éviter les calculs fantômes
             $MatchData = $null; $Me = $null; $TeamParticipants = $null
-            $TeamKills = 0; $TeamDmg = 0
+            $TeamKills = 0; $TeamDmg = 0; $TeamDeaths = 0
 
             $MatchData = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/$MatchId"
     
@@ -151,11 +151,13 @@ foreach ($Friend in $FriendsList) {
                     foreach ($p in $TeamParticipants) {
                         $TeamKills += $p.kills
                         $TeamDmg += $p.totalDamageDealtToChampions
+                        $TeamDeaths += $p.deaths
                     }
 
                     # Sécurité division par zéro
                     $SafeTeamKills = if ($TeamKills -eq 0) { 1 } else { $TeamKills }
                     $SafeTeamDmg = if ($TeamDmg -eq 0) { 1 } else { $TeamDmg }
+                    $SafeTeamDeaths = if ($TeamDeaths -eq 0) { 1 } else { $TeamDeaths }
 
                     # 3. CALCULER LES % DE PARTICIPATION (Avec les données fraîches de $Me)
                     $KP = [math]::Round((($Me.kills + $Me.assists) / $SafeTeamKills) * 100, 1)
@@ -214,6 +216,7 @@ foreach ($Friend in $FriendsList) {
                         KP          = $KP
                         DmgShare    = $DmgShare
                         TeamKills   = $TeamKills
+                        TeamDeaths  = $TeamDeaths
                     }
                 }
             }
