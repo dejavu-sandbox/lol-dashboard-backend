@@ -16,7 +16,7 @@ $FriendsList = @("BlasterFly#EUW", "Megumin Full AP#EUW", "Gourdin Puissant#CHIE
 $Route = "europe"
 $Region = "euw1"
 
-# --- FONCTION DE CALCUL DE SCORE GLOBAL (POUR LE TREND) ---
+# --- FONCTION DE CALCUL DE SCORE GLOBAL (TREND) ---
 function Get-TotalLP($tier, $rank, $lp) {
     $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800}
     $rankScores = @{"IV"=0;"III"=100;"II"=200;"I"=300}
