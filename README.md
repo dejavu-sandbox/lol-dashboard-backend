@@ -55,6 +55,12 @@ lol-dashboard-backend/
   - Azure Portal
   - GitHub Pages (your frontend)
 
+## � Related Projects
+
+- **Frontend Dashboard:** [lol-dashboard](https://github.com/dejavu-sandbox/lol-dashboard)
+  - Main UI for displaying player statistics
+  - Hosted on GitHub Pages
+
 ## 🚀 Deployment
 
 Deploy to Azure Functions using:
@@ -72,3 +78,14 @@ Response: { tier, rank, lp, totalLP, winRate, summonerId, ... }
 
 ### SnapshotDailyLP
 Runs automatically on schedule. Stores snapshots in configured data path.
+
+## 📚 Future Enhancements
+
+The `/modules/` directory contains a helper module template designed for future refactoring:
+- `Helpers.ps1` - Planned utilities for logging and error handling
+
+This can be integrated when refactoring GetLoLStats and SnapshotDailyLP for better code organization.
+
+## 📄 License
+
+MIT License - Feel free to use, modify, and redistribute this project as you wish.
