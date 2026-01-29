@@ -205,7 +205,7 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "carry"; Spell = "SummonerIgnite"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
             }
             if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
-                $Badges += @{ Type = "farmer"; Champion = "Nasus"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
+                $Badges += @{ Type = "farmer"; Spell = "NasusQ"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
 
             $GlobalData[$Name] = @{
