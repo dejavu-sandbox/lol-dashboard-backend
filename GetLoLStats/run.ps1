@@ -207,9 +207,6 @@ foreach ($Friend in $FriendsList) {
             if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
                 $Badges += @{ Type = "farmer"; Champion = "Nasus"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
-            if ($AvgVision -gt 50) {
-                $Badges += @{ Type = "vision"; Spell = "AsheSpiritOfTheHawk"; Title = "👁️ VISION KING: Map Control Master! (${AvgVision} avg vision score)" }
-            }
 
             $GlobalData[$Name] = @{
                 Tag = $Tag; Rank = $RankString; DailyLp = $DailyTrend; 
