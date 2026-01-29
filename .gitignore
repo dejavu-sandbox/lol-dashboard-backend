@@ -1,0 +1,20 @@
+# Azure Functions
+local.settings.json
+Connections/
+
+# IDE
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# OS
+.DS_Store
+.windows
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
