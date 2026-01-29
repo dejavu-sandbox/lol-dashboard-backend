@@ -192,6 +192,7 @@ foreach ($Friend in $FriendsList) {
                     Quadras = $Me.quadraKills; Pentas = $Me.pentaKills
                     KP = $KP
                     DmgShare = $DmgShare
+                    TeamKills = $TeamKills
                 }
             }
         }
