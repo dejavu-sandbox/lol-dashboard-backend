@@ -126,73 +126,95 @@ foreach ($Friend in $FriendsList) {
             }
         }
 
-        # 4. MATCHS
+        # --- 4. MATCHS ---
         $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=$NbMatchs&type=ranked"
         $MatchesDetails = @(); $TotalKills = 0; $TotalDeaths = 0; $TotalAssists = 0; $Wins = 0
         $TotalPentas = 0; $TotalQuadras = 0; $TotalPings = 0; $TotalCS = 0
-        
+
         foreach ($MatchId in $MatchIds) {
+            # On vide les variables du match précédent pour éviter les calculs fantômes
+            $MatchData = $null; $Me = $null; $TeamParticipants = $null
+            $TeamKills = 0; $TeamDmg = 0
+
             $MatchData = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/$MatchId"
-            if ($MatchData) {
-                # 1. Identifier mon équipe et ses membres
-                $MyTeamId = $Me.teamId
-                $TeamParticipants = $MatchData.info.participants | Where-Object { $_.teamId -eq $MyTeamId }
-
-                # 2. Calculer les totaux de l'équipe
-                $TeamKills = ($TeamParticipants.kills | Measure-Object -Sum).Sum
-                if ($TeamKills -eq 0) { $TeamKills = 1 } # Sécurité division par zéro
-
-                $TeamDmg = ($TeamParticipants.totalDamageDealtToChampions | Measure-Object -Sum).Sum
-                if ($TeamDmg -eq 0) { $TeamDmg = 1 }
-
-                # 3. Calculer les % de participation
-                $KP = [math]::Round((($Me.kills + $Me.assists) / $TeamKills) * 100, 1)
-                $DmgShare = [math]::Round(($Me.totalDamageDealtToChampions / $TeamDmg) * 100, 1)
-
-
+    
+            if ($MatchData -and $MatchData.info) {
+                # 1. IDENTIFIER LE JOUEUR D'ABORD (Crucial pour les calculs suivants)
                 $Me = $MatchData.info.participants | Where-Object { $_.puuid -eq $Puuid }
-                $MyRole = $Me.teamPosition
-                $Enemy = $MatchData.info.participants | Where-Object { $_.teamPosition -eq $MyRole -and $_.puuid -ne $Puuid }
-                $EnemyChamp = if ($Enemy) { $Enemy.championName } else { "" }
+        
+                if ($Me) {
+                    # 2. IDENTIFIER L'ÉQUIPE ET CALCULER LES TOTALS
+                    $MyTeamId = $Me.teamId
+                    $TeamParticipants = $MatchData.info.participants | Where-Object { $_.teamId -eq $MyTeamId }
 
-                $TotalKills += $Me.kills; $TotalDeaths += $Me.deaths; $TotalAssists += $Me.assists
-                $TotalPentas += $Me.pentaKills; $TotalQuadras += $Me.quadraKills
-                if ($Me.win) { $Wins++ }
+                    # Somme des kills et dégâts de l'équipe
+                    foreach ($p in $TeamParticipants) {
+                        $TeamKills += $p.kills
+                        $TeamDmg += $p.totalDamageDealtToChampions
+                    }
 
-                $CS = $Me.totalMinionsKilled + $Me.neutralMinionsKilled
-                $TotalCS += $CS
-                $DurationSec = $MatchData.info.gameDuration
-                $DurationMinVal = if ($DurationSec -eq 0) { 1 } else { $DurationSec / 60 }
-                $TimeStr = "{0}m {1}s" -f [math]::Floor($DurationMinVal), ($DurationSec % 60)
-                $CSPerMin = [math]::Round($CS / $DurationMinVal, 1)
-                $GoldMin = [math]::Round($Me.goldEarned / $DurationMinVal, 0)
-                $DPM = [math]::Round($Me.totalDamageDealtToChampions / $DurationMinVal, 0)
+                    # Sécurité division par zéro
+                    $SafeTeamKills = if ($TeamKills -eq 0) { 1 } else { $TeamKills }
+                    $SafeTeamDmg = if ($TeamDmg -eq 0) { 1 } else { $TeamDmg }
 
-                $ToxScore = ($Me.enemyMissingPings + $Me.pushPings + $Me.baitPings)
-                $TotalPings += $ToxScore
+                    # 3. CALCULER LES % DE PARTICIPATION (Avec les données fraîches de $Me)
+                    $KP = [math]::Round((($Me.kills + $Me.assists) / $SafeTeamKills) * 100, 1)
+                    $DmgShare = [math]::Round(($Me.totalDamageDealtToChampions / $SafeTeamDmg) * 100, 1)
 
-                $DisplayRole = if ($Me.teamPosition -eq "UTILITY") { "SUPPORT" } else { $Me.teamPosition }
-                $PinksBought = if ($Me.visionWardsBoughtInGame) { $Me.visionWardsBoughtInGame } else { 0 }
+                    # 4. INFOS COMPLÉMENTAIRES
+                    $MyRole = $Me.teamPosition
+                    $Enemy = $MatchData.info.participants | Where-Object { $_.teamPosition -eq $MyRole -and $_.puuid -ne $Puuid }
+                    $EnemyChamp = if ($Enemy) { $Enemy.championName } else { "" }
 
-                $MatchesDetails += @{
-                    Champion = $Me.championName
-                    EnemyChamp = $EnemyChamp
-                    Role = $DisplayRole
-                    KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
-                    Win = $Me.win
-                    Date = $MatchData.info.gameEndTimestamp
-                    Duration = $TimeStr
-                    CS = $CS; CSMin = $CSPerMin
-                    Vision = $Me.visionScore; Pinks = $PinksBought
-                    Pings = $ToxScore
-                    DamageDealt = $Me.totalDamageDealtToChampions; DPM = $DPM
-                    DamageTaken = $Me.totalDamageTaken; Heal = $Me.totalHeal
-                    DmgObj = $Me.damageDealtToObjectives
-                    Gold = $Me.goldEarned; GoldMin = $GoldMin
-                    Quadras = $Me.quadraKills; Pentas = $Me.pentaKills
-                    KP = $KP
-                    DmgShare = $DmgShare
-                    TeamKills = $TeamKills
+                    # Accumulation des stats globales
+                    $TotalKills += $Me.kills; $TotalDeaths += $Me.deaths; $TotalAssists += $Me.assists
+                    $TotalPentas += $Me.pentaKills; $TotalQuadras += $Me.quadraKills
+                    if ($Me.win) { $Wins++ }
+
+                    $CS = $Me.totalMinionsKilled + $Me.neutralMinionsKilled
+                    $TotalCS += $CS
+            
+                    $DurationSec = $MatchData.info.gameDuration
+                    $DurationMinVal = if ($DurationSec -le 0) { 1 } else { $DurationSec / 60 }
+                    $TimeStr = "{0}m {1}s" -f [math]::Floor($DurationMinVal), ($DurationSec % 60)
+            
+                    $CSPerMin = [math]::Round($CS / $DurationMinVal, 1)
+                    $GoldMin = [math]::Round($Me.goldEarned / $DurationMinVal, 0)
+                    $DPM = [math]::Round($Me.totalDamageDealtToChampions / $DurationMinVal, 0)
+
+                    $ToxScore = ($Me.enemyMissingPings + $Me.pushPings + $Me.baitPings)
+                    $TotalPings += $ToxScore
+
+                    $DisplayRole = if ($Me.teamPosition -eq "UTILITY") { "SUPPORT" } else { $Me.teamPosition }
+                    $PinksBought = if ($Me.visionWardsBoughtInGame) { $Me.visionWardsBoughtInGame } else { 0 }
+
+                    # 5. AJOUT À L'HISTORIQUE
+                    $MatchesDetails += @{
+                        Champion    = $Me.championName
+                        EnemyChamp  = $EnemyChamp
+                        Role        = $DisplayRole
+                        KDA         = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
+                        Win         = $Me.win
+                        Date        = $MatchData.info.gameEndTimestamp
+                        Duration    = $TimeStr
+                        CS          = $CS
+                        CSMin       = $CSPerMin
+                        Vision      = $Me.visionScore
+                        Pinks       = $PinksBought
+                        Pings       = $ToxScore
+                        DamageDealt = $Me.totalDamageDealtToChampions
+                        DPM         = $DPM
+                        DamageTaken = $Me.totalDamageTaken
+                        Heal        = $Me.totalHeal
+                        DmgObj      = $Me.damageDealtToObjectives
+                        Gold        = $Me.goldEarned
+                        GoldMin     = $GoldMin
+                        Quadras     = $Me.quadraKills
+                        Pentas      = $Me.pentaKills
+                        KP          = $KP
+                        DmgShare    = $DmgShare
+                        TeamKills   = $TeamKills
+                    }
                 }
             }
         }
