@@ -7,7 +7,7 @@ $ApiKey = $env:RiotApiKey
 $NbMatchs = 20
 $DailyStatsPath = "C:\home\data\daily_stats.json"
 
-# 🚀 LIMITES & CACHE
+# 🚀 LIMITS & CACHE
 $MinIntervalSeconds = 60    
 $CacheFile = Join-Path $env:TEMP "lol_stats_cache_v12.json"
 $CurrentDate = (Get-Date).ToString("yyyyMMdd")
