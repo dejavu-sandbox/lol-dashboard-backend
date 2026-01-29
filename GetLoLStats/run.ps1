@@ -24,8 +24,8 @@ $Region = "euw1"
 
 # --- NEW: FONCTION DE CALCUL DE SCORE GLOBAL ---
 function Get-TotalLP($tier, $rank, $lp) {
-    $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800;"GRANDMASTER"=2800;"CHALLENGER"=2800}
-    $rankScores = @{"IV"=0;"III"=100;"II"=200;"I"=300}
+    $tierScores = @{"IRON" = 0; "BRONZE" = 400; "SILVER" = 800; "GOLD" = 1200; "PLATINUM" = 1600; "EMERALD" = 2000; "DIAMOND" = 2400; "MASTER" = 2800; "GRANDMASTER" = 2800; "CHALLENGER" = 2800 }
+    $rankScores = @{"IV" = 0; "III" = 100; "II" = 200; "I" = 300 }
     $base = $tierScores[$tier]
     if ($null -eq $base) { return 0 }
     if ($base -ge 2800) { return $base + $lp }
@@ -52,15 +52,17 @@ if (Test-Path $CacheFile) {
         if ($SecondsSinceLast -lt $MinIntervalSeconds) {
             $ShouldRefresh = $false; $Message = "Cache utilisé (Délai)."
         }
-    } catch { $DailyCounter = 0 }
-} else { $DailyCounter = 0 }
+    }
+    catch { $DailyCounter = 0 }
+}
+else { $DailyCounter = 0 }
 
 if (-not $ShouldRefresh -and $CachedData) {
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-        StatusCode = [HttpStatusCode]::OK; 
-        Body = $CachedData | ConvertTo-Json -Depth 10;
-        Headers = @{ "Content-Type" = "application/json" }
-    })
+            StatusCode = [HttpStatusCode]::OK; 
+            Body       = $CachedData | ConvertTo-Json -Depth 10;
+            Headers    = @{ "Content-Type" = "application/json" }
+        })
     return
 }
 
@@ -132,6 +134,22 @@ foreach ($Friend in $FriendsList) {
         foreach ($MatchId in $MatchIds) {
             $MatchData = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/$MatchId"
             if ($MatchData) {
+                # 1. Identifier mon équipe et ses membres
+                $MyTeamId = $Me.teamId
+                $TeamParticipants = $MatchData.info.participants | Where-Object { $_.teamId -eq $MyTeamId }
+
+                # 2. Calculer les totaux de l'équipe
+                $TeamKills = ($TeamParticipants.kills | Measure-Object -Sum).Sum
+                if ($TeamKills -eq 0) { $TeamKills = 1 } # Sécurité division par zéro
+
+                $TeamDmg = ($TeamParticipants.totalDamageDealtToChampions | Measure-Object -Sum).Sum
+                if ($TeamDmg -eq 0) { $TeamDmg = 1 }
+
+                # 3. Calculer les % de participation
+                $KP = [math]::Round((($Me.kills + $Me.assists) / $TeamKills) * 100, 1)
+                $DmgShare = [math]::Round(($Me.totalDamageDealtToChampions / $TeamDmg) * 100, 1)
+
+
                 $Me = $MatchData.info.participants | Where-Object { $_.puuid -eq $Puuid }
                 $MyRole = $Me.teamPosition
                 $Enemy = $MatchData.info.participants | Where-Object { $_.teamPosition -eq $MyRole -and $_.puuid -ne $Puuid }
@@ -157,14 +175,23 @@ foreach ($Friend in $FriendsList) {
                 $PinksBought = if ($Me.visionWardsBoughtInGame) { $Me.visionWardsBoughtInGame } else { 0 }
 
                 $MatchesDetails += @{
-                    Champion = $Me.championName; EnemyChamp = $EnemyChamp; Role = $DisplayRole
-                    KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"; Win = $Me.win
-                    Date = $MatchData.info.gameEndTimestamp; Duration = $TimeStr
-                    CS = $CS; CSMin = $CSPerMin; Vision = $Me.visionScore; Pinks = $PinksBought
-                    Pings = $ToxScore; DamageDealt = $Me.totalDamageDealtToChampions; DPM = $DPM
+                    Champion = $Me.championName
+                    EnemyChamp = $EnemyChamp
+                    Role = $DisplayRole
+                    KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
+                    Win = $Me.win
+                    Date = $MatchData.info.gameEndTimestamp
+                    Duration = $TimeStr
+                    CS = $CS; CSMin = $CSPerMin
+                    Vision = $Me.visionScore; Pinks = $PinksBought
+                    Pings = $ToxScore
+                    DamageDealt = $Me.totalDamageDealtToChampions; DPM = $DPM
                     DamageTaken = $Me.totalDamageTaken; Heal = $Me.totalHeal
-                    DmgObj = $Me.damageDealtToObjectives; Gold = $Me.goldEarned; GoldMin = $GoldMin
-                    Pentas = $Me.pentaKills; Quadras = $Me.quadraKills
+                    DmgObj = $Me.damageDealtToObjectives
+                    Gold = $Me.goldEarned; GoldMin = $GoldMin
+                    Quadras = $Me.quadraKills; Pentas = $Me.pentaKills
+                    KP = $KP
+                    DmgShare = $DmgShare
                 }
             }
         }
@@ -181,7 +208,8 @@ foreach ($Friend in $FriendsList) {
             }
             $StreakType = if ($IsWinStreak) { "Win" } else { "Loss" }
             $AvgPings = [math]::Round($TotalPings / $GamesCount, 1)
-        } else { $Winrate = 0; $AvgKDA = 0; $AvgPings = 0 }
+        }
+        else { $Winrate = 0; $AvgKDA = 0; $AvgPings = 0 }
 
         $GlobalData[$Name] = @{
             Tag = $Tag; Rank = $RankString; Winrate = $Winrate; AvgKDA = $AvgKDA; 
@@ -200,7 +228,7 @@ $JsonToSave = $ObjectToCache | ConvertTo-Json -Depth 10
 $JsonToSave | Set-Content $CacheFile
 
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-    StatusCode = [HttpStatusCode]::OK; 
-    Body = $GlobalData | ConvertTo-Json -Depth 10;
-    Headers = @{ "Content-Type" = "application/json" }
-})
+        StatusCode = [HttpStatusCode]::OK; 
+        Body       = $GlobalData | ConvertTo-Json -Depth 10;
+        Headers    = @{ "Content-Type" = "application/json" }
+    })
