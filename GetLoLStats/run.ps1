@@ -194,7 +194,7 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "death_magnet"; Spell = "Revive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Avg ${AvgDeathShare}% of team deaths)" }
             }
             if ($AvgDeathShare -lt 15 -and $GamesCount -ge 10) {
-                $Badges += @{ Type = "unkillable"; Spell = "UnbreakableWill"; Title = "🛡️ UNKILLABLE: Invincible! (Only ${AvgDeathShare}% of team deaths)" }
+                $Badges += @{ Type = "unkillable"; Spell = "SummonerBarrier"; Title = "🛡️ UNKILLABLE: Invincible! (Only ${AvgDeathShare}% of team deaths)" }
             }
             if ($AvgDmgShare -gt 30) {
                 $Badges += @{ Type = "carry"; Spell = "SummonerIgnite"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
@@ -203,7 +203,7 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "farmer"; Champion = "Nasus"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
             if ($AvgVision -gt 50) {
-                $Badges += @{ Type = "vision"; Spell = "HawkShot"; Title = "👁️ VISION KING: Map Control Master! (${AvgVision} avg vision score)" }
+                $Badges += @{ Type = "vision"; Spell = "AsheSpiritOfTheHawk"; Title = "👁️ VISION KING: Map Control Master! (${AvgVision} avg vision score)" }
             }
 
             $GlobalData[$Name] = @{
