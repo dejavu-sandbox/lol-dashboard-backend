@@ -159,7 +159,12 @@ foreach ($Friend in $FriendsList) {
             $ChampCounts = $MatchesDetails.Champion | Group-Object | Sort-Object Count -Descending
             $TopChampCount = ($ChampCounts | Select-Object -First 1).Count
             $AvgDmgShare = [math]::Round(($MatchesDetails.DmgShare | Measure-Object -Average).Average, 1)
-            $AvgCSMin = [math]::Round(($MatchesDetails.CSMin | Measure-Object -Average).Average, 1)
+            
+            # CS/min excluant les games support
+            $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
+            $NonSupportCount = $NonSupportMatches.Count
+            $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
+            
             $AvgVision = [math]::Round(($MatchesDetails.Vision | Measure-Object -Average).Average, 0)
             
             # Badges existants
@@ -199,7 +204,7 @@ foreach ($Friend in $FriendsList) {
             if ($AvgDmgShare -gt 30) {
                 $Badges += @{ Type = "carry"; Spell = "SummonerIgnite"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
             }
-            if ($AvgCSMin -gt 8) {
+            if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
                 $Badges += @{ Type = "farmer"; Champion = "Nasus"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
             if ($AvgVision -gt 50) {
