@@ -13,8 +13,8 @@ lol-dashboard-backend/
 │   ├── function.json     (Timer Trigger - Daily at 00:05)
 │   └── run.ps1          (Daily LP snapshot capture)
 ├── modules/
-│   ├── LoLApi.ps1       (Riot API integration)
-│   └── Helpers.ps1      (Utility functions)
+│   └── Helpers.ps1      (For future refactoring)
+├── .gitignore
 └── README.md
 ```
 
@@ -54,7 +54,43 @@ lol-dashboard-backend/
 - **CORS Origins Allowed:**
   - Azure Portal
   - GitHub Pages (your frontend)
+## 📋 Prerequisites
 
+Before deploying, configure the following in your Azure Function App:
+
+### 1. Riot API Key (App Settings)
+```
+Setting Name: RiotApiKey
+Value: <your-riot-api-key>
+```
+
+**Better Practice: Use Azure Key Vault**
+1. Create an Azure Key Vault
+2. Store the API key in the vault
+3. Reference it in App Settings:
+```
+Setting Name: RiotApiKey
+Value: @Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/<secret-name>/version)
+```
+
+### 2. Storage Account (For Timer Trigger)
+The `SnapshotDailyLP` timer trigger requires persistent storage:
+
+1. Create or use an existing Azure Storage Account
+2. Get the connection string from **Access Keys**
+3. Add to App Settings:
+```
+Setting Name: AzureWebJobsStorage
+Value: <your-storage-account-connection-string>
+```
+
+This allows the timer job to maintain state and schedule reliability.
+
+### 3. Data Storage Location
+Configure the snapshot file path in `SnapshotDailyLP/run.ps1`:
+```powershell
+$FilePath = "C:\home\data\daily_stats.json"  # Azure Functions file system
+```
 ## � Related Projects
 
 - **Frontend Dashboard:** [lol-dashboard](https://github.com/dejavu-sandbox/lol-dashboard)
