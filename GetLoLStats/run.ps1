@@ -147,17 +147,76 @@ foreach ($Friend in $FriendsList) {
             $StreakCount = 0; $IsWinStreak = $MatchesDetails[0].Win
             foreach ($m in $MatchesDetails) { if ($m.Win -eq $IsWinStreak) { $StreakCount++ } else { break } }
             
+            # --- BADGES LOGIC ---
+            $Badges = @()
+            $AvgPingsCalc = [math]::Round($TotalPings / $GamesCount, 1)
+            $KDA = if ($TotalDeaths -eq 0) { $TotalKills + $TotalAssists } else { [math]::Round(($TotalKills + $TotalAssists) / $TotalDeaths, 2) }
+            $WinrateCalc = [math]::Round(($Wins / $GamesCount) * 100, 0)
+            $TotalPentasSum = ($MatchesDetails.Pentas | Measure-Object -Sum).Sum
+            $TotalQuadrasSum = ($MatchesDetails.Quadras | Measure-Object -Sum).Sum
+            
+            # Calculs additionnels pour nouveaux badges
+            $ChampCounts = $MatchesDetails.Champion | Group-Object | Sort-Object Count -Descending
+            $TopChampCount = ($ChampCounts | Select-Object -First 1).Count
+            $AvgDmgShare = [math]::Round(($MatchesDetails.DmgShare | Measure-Object -Average).Average, 1)
+            $AvgCSMin = [math]::Round(($MatchesDetails.CSMin | Measure-Object -Average).Average, 1)
+            $AvgVision = [math]::Round(($MatchesDetails.Vision | Measure-Object -Average).Average, 0)
+            
+            # Badges existants
+            if ($AvgPingsCalc -gt 6) {
+                $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
+            }
+            if ($IsWinStreak -and $StreakCount -ge 4) {
+                $Badges += @{ Type = "fire"; Spell = "SummonerDot"; Title = "🔥 ON FIRE: Unstoppable! ($StreakCount+ Wins)" }
+            }
+            if (-not $IsWinStreak -and $StreakCount -ge 4) {
+                $Badges += @{ Type = "sad"; Spell = "AuraofDespair"; Title = "😢 SAD: Tough night? ($StreakCount+ Losses)" }
+            }
+            if ($WinrateCalc -ge 60) {
+                $Badges += @{ Type = "smurf"; Spell = "UndyingRage"; Title = "👑 SMURF: Built Different! (Winrate >= 60% on last 20 games)" }
+            }
+            if ($TotalPentasSum -gt 0) {
+                $Badges += @{ Type = "penta"; Icon = "666"; Title = "🤘 PENTAKILL! ($TotalPentasSum)" }
+            }
+            if ($TotalQuadrasSum -gt 0) {
+                $Badges += @{ Type = "quadra"; Champion = "Jhin"; Title = "🎭 PERFECTION! ($TotalQuadrasSum Quadras)" }
+            }
+            
+            # Nouveaux badges
+            if ($TopChampCount -ge 13) {
+                $TopChampName = ($ChampCounts | Select-Object -First 1).Name
+                $Badges += @{ Type = "otp"; Champion = $TopChampName; Title = "🎯 OTP: $TopChampName Specialist! ($TopChampCount/20 games)" }
+            }
+            if ($TopChampCount -le 5 -and $GamesCount -ge 20) {
+                $Badges += @{ Type = "versatile"; Spell = "TeleportCancel"; Title = "🎭 VERSATILE: Jack of All Champs! (No dominant pick)" }
+            }
+            if ($AvgDeathShare -gt 25) {
+                $Badges += @{ Type = "death_magnet"; Spell = "Revive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Avg ${AvgDeathShare}% of team deaths)" }
+            }
+            if ($AvgDeathShare -lt 15 -and $GamesCount -ge 10) {
+                $Badges += @{ Type = "unkillable"; Spell = "Barrier"; Title = "🛡️ UNKILLABLE: Invincible! (Only ${AvgDeathShare}% of team deaths)" }
+            }
+            if ($AvgDmgShare -gt 30) {
+                $Badges += @{ Type = "carry"; Spell = "SummonerIgnite"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
+            }
+            if ($AvgCSMin -gt 8) {
+                $Badges += @{ Type = "farmer"; Champion = "Nasus"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
+            }
+            if ($AvgVision -gt 50) {
+                $Badges += @{ Type = "vision"; Spell = "FarsightAlteration"; Title = "👁️ VISION KING: Map Control Master! (${AvgVision} avg vision score)" }
+            }
+
             $GlobalData[$Name] = @{
                 Tag = $Tag; Rank = $RankString; DailyLp = $DailyTrend; 
                 GlobalWinrate = $GlobalWR; GlobalGames = $GlobalGames; # Saison
-                Winrate = [math]::Round(($Wins / $GamesCount) * 100, 0); # Last 20
-                AvgKDA = if ($TotalDeaths -eq 0) { $TotalKills + $TotalAssists } else { [math]::Round(($TotalKills + $TotalAssists) / $TotalDeaths, 2) };
+                Winrate = $WinrateCalc; # Last 20
+                AvgKDA = $KDA;
                 AvgKP = $AvgKP; AvgDeathShare = $AvgDeathShare; MainChamp = $MainChamp;
                 StreakType = if ($IsWinStreak) { "Win" } else { "Loss" }; StreakCount = $StreakCount;
-                AvgPings = [math]::Round($TotalPings / $GamesCount, 1);
+                AvgPings = $AvgPingsCalc;
                 History = $MatchesDetails; ProfileIcon = $Summoner.profileIconId;
-                TotalPentas = ($MatchesDetails.Pentas | Measure-Object -Sum).Sum; 
-                TotalQuadras = ($MatchesDetails.Quadras | Measure-Object -Sum).Sum
+                TotalPentas = $TotalPentasSum; TotalQuadras = $TotalQuadrasSum;
+                Badges = $Badges
             }
         }
     }
