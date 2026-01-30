@@ -27,11 +27,14 @@ function Get-TotalLP($tier, $rank, $lp) {
 }
 
 # --- CACHE MANAGEMENT ---
-if (Test-Path $CacheFile) {
+# Always return cache if exists, unless forced refresh
+$ForceRefresh = $Request.Query.refresh -eq 'true'
+
+if (!$ForceRefresh -and (Test-Path $CacheFile)) {
     try {
         $CacheContent = Get-Content $CacheFile -Raw | ConvertFrom-Json
-        $SecondsSinceLast = ((Get-Date) - [datetime]$CacheContent.LastUpdate).TotalSeconds
-        if ($SecondsSinceLast -lt $MinIntervalSeconds -and $CacheContent.Date -eq $CurrentDate) {
+        if ($CacheContent.Date -eq $CurrentDate) {
+            # Return cached data regardless of age
             Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
                 StatusCode = [HttpStatusCode]::OK; Body = $CacheContent.Data | ConvertTo-Json -Depth 10; Headers = @{"Content-Type"="application/json"}
             }); return
