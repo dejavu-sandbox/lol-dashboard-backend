@@ -33,9 +33,13 @@ if (!$ForceRefresh -and (Test-Path $CacheFile)) {
     try {
         $CacheContent = Get-Content $CacheFile -Raw | ConvertFrom-Json
         if ($CacheContent.Date -eq $CurrentDate) {
-            # Return cached data regardless of age
+            # Return cached data with LastUpdate timestamp
+            $ResponseData = @{ 
+                LastUpdate = $CacheContent.LastUpdate
+                Data = $CacheContent.Data 
+            }
             Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-                StatusCode = [HttpStatusCode]::OK; Body = $CacheContent.Data | ConvertTo-Json -Depth 10; Headers = @{"Content-Type"="application/json"}
+                StatusCode = [HttpStatusCode]::OK; Body = $ResponseData | ConvertTo-Json -Depth 10; Headers = @{"Content-Type"="application/json"}
             }); return
         }
     } catch { }
@@ -226,6 +230,13 @@ foreach ($Friend in $FriendsList) {
 # --- SAVE AND RESPONSE ---
 $ObjectToCache = @{ LastUpdate = (Get-Date); Date = $CurrentDate; Data = $GlobalData }
 $ObjectToCache | ConvertTo-Json -Depth 10 | Set-Content $CacheFile
+
+# Include LastUpdate timestamp in response
+$ResponseData = @{ 
+    LastUpdate = $ObjectToCache.LastUpdate.ToString("o")  # ISO 8601 format
+    Data = $GlobalData 
+}
+
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-    StatusCode = [HttpStatusCode]::OK; Body = $GlobalData | ConvertTo-Json -Depth 10; Headers = @{ "Content-Type" = "application/json" }
+    StatusCode = [HttpStatusCode]::OK; Body = $ResponseData | ConvertTo-Json -Depth 10; Headers = @{ "Content-Type" = "application/json" }
 })
