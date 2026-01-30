@@ -7,7 +7,7 @@ $ApiKey = $env:RiotApiKey
 $NbMatchs = 20
 $DailyStatsPath = "C:\home\data\daily_stats.json"
 
-# 🚀 LIMITS & CACHE
+# LIMITS & CACHE
 $MinIntervalSeconds = 60    
 $CacheFile = Join-Path $env:TEMP "lol_stats_cache_v12.json"
 $CurrentDate = (Get-Date).ToString("yyyyMMdd")
@@ -16,7 +16,7 @@ $FriendsList = @("BlasterFly#EUW", "Megumin Full AP#EUW", "Gourdin Puissant#CHIE
 $Route = "europe"
 $Region = "euw1"
 
-# --- FONCTION DE CALCUL DE SCORE GLOBAL (TREND) ---
+# --- TOTAL LP CALCULATION FUNCTION ---
 function Get-TotalLP($tier, $rank, $lp) {
     $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800}
     $rankScores = @{"IV"=0;"III"=100;"II"=200;"I"=300}
@@ -26,7 +26,7 @@ function Get-TotalLP($tier, $rank, $lp) {
     return $base + ($rankScores[$rank] ?? 0) + $lp
 }
 
-# --- GESTION DU CACHE ---
+# --- CACHE MANAGEMENT ---
 if (Test-Path $CacheFile) {
     try {
         $CacheContent = Get-Content $CacheFile -Raw | ConvertFrom-Json
@@ -39,7 +39,7 @@ if (Test-Path $CacheFile) {
     } catch { }
 }
 
-# --- CHARGEMENT DU SNAPSHOT DE MINUIT ---
+# --- LOAD DAILY SNAPSHOT ---
 $DailyStats = @{}
 if (Test-Path $DailyStatsPath) { try { $DailyStats = Get-Content $DailyStatsPath | ConvertFrom-Json } catch {} }
 
@@ -53,7 +53,7 @@ function Invoke-RiotApi {
     }
 }
 
-# --- TRAITEMENT PRINCIPAL ---
+# --- MAIN PROCESSING ---
 $GlobalData = @{} 
 
 foreach ($Friend in $FriendsList) {
@@ -64,7 +64,7 @@ foreach ($Friend in $FriendsList) {
         $Puuid = $Account.puuid
         $Summoner = Invoke-RiotApi -Url "https://$Region.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/$Puuid"
         
-        # 3. RANG, TREND & GLOBAL WINRATE (SEASON)
+        # Rank, trend and season winrate
         $RankString = "Unranked"; $DailyTrend = "0 LP"; $GlobalWR = 0; $GlobalGames = 0
         $RankData = Invoke-RiotApi -Url "https://$Region.api.riotgames.com/lol/league/v4/entries/by-puuid/$Puuid"
         
@@ -86,7 +86,7 @@ foreach ($Friend in $FriendsList) {
             }
         }
 
-        # --- 4. ANALYSE DES 20 DERNIERS MATCHS ---
+        # --- LAST 20 MATCHES ANALYSIS ---
         $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=$NbMatchs&type=ranked"
         $MatchesDetails = @(); $Wins = 0; $TotalKills = 0; $TotalDeaths = 0; $TotalAssists = 0; $TotalPings = 0
 
@@ -103,7 +103,7 @@ foreach ($Friend in $FriendsList) {
                         $TK += $p.kills; $TDmg += $p.totalDamageDealtToChampions; $TDeaths += $p.deaths
                     }
 
-                    # Calculs % individuels
+                    # Individual percentages
                     $KP = [math]::Round((($Me.kills + $Me.assists) / [math]::Max(1, $TK)) * 100, 1)
                     $DmgShare = [math]::Round(($Me.totalDamageDealtToChampions / [math]::Max(1, $TDmg)) * 100, 1)
                     $DeathShare = [math]::Round(($Me.deaths / [math]::Max(1, $TDeaths)) * 100, 1)
@@ -133,14 +133,14 @@ foreach ($Friend in $FriendsList) {
             }
         }
 
-        # --- 5. CALCULS GLOBAUX POUR LE DASHBOARD ---
+        # --- GLOBAL STATS CALCULATION ---
         $GamesCount = $MatchesDetails.Count
         if ($GamesCount -gt 0) {
-            # Moyennes d'Impact
+            # Impact averages
             $AvgKP = [math]::Round(($MatchesDetails.KP | Measure-Object -Average).Average, 1)
             $AvgDeathShare = [math]::Round(($MatchesDetails.DeathShare | Measure-Object -Average).Average, 1)
             
-            # Champion le plus joué (Main Champ)
+            # Most played champion
             $MainChamp = ($MatchesDetails.Champion | Group-Object | Sort-Object Count -Descending | Select-Object -First 1).Name
 
             # Streak
@@ -155,19 +155,18 @@ foreach ($Friend in $FriendsList) {
             $TotalPentasSum = ($MatchesDetails.Pentas | Measure-Object -Sum).Sum
             $TotalQuadrasSum = ($MatchesDetails.Quadras | Measure-Object -Sum).Sum
             
-            # Calculs additionnels pour nouveaux badges
+            # Additional calculations for badges
             $ChampCounts = $MatchesDetails.Champion | Group-Object | Sort-Object Count -Descending
             $TopChampCount = ($ChampCounts | Select-Object -First 1).Count
             $AvgDmgShare = [math]::Round(($MatchesDetails.DmgShare | Measure-Object -Average).Average, 1)
             
-            # CS/min excluant les games support
+            # CS/min excluding support games
             $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
             
             $AvgVision = [math]::Round(($MatchesDetails.Vision | Measure-Object -Average).Average, 0)
             
-            # Badges existants
             if ($AvgPingsCalc -gt 6) {
                 $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
             }
@@ -186,8 +185,6 @@ foreach ($Friend in $FriendsList) {
             if ($TotalQuadrasSum -gt 0) {
                 $Badges += @{ Type = "quadra"; Champion = "Jhin"; Title = "🎭 PERFECTION! ($TotalQuadrasSum Quadras)" }
             }
-            
-            # Nouveaux badges
             if ($TopChampCount -ge 13) {
                 $TopChampName = ($ChampCounts | Select-Object -First 1).Name
                 $Badges += @{ Type = "otp"; LocalIcon = "img/oneTrickPony.png"; Champion = $TopChampName; Title = "🎯 OTP: $TopChampName Specialist! ($TopChampCount/20 games)" }
@@ -210,7 +207,7 @@ foreach ($Friend in $FriendsList) {
 
             $GlobalData[$Name] = @{
                 Tag = $Tag; Rank = $RankString; DailyLp = $DailyTrend; 
-                GlobalWinrate = $GlobalWR; GlobalGames = $GlobalGames; # Saison
+                GlobalWinrate = $GlobalWR; GlobalGames = $GlobalGames; # Season
                 Winrate = $WinrateCalc; # Last 20
                 AvgKDA = $KDA;
                 AvgKP = $AvgKP; AvgDeathShare = $AvgDeathShare; MainChamp = $MainChamp;
@@ -224,7 +221,7 @@ foreach ($Friend in $FriendsList) {
     }
 }
 
-# --- SAUVEGARDE ET RÉPONSE ---
+# --- SAVE AND RESPONSE ---
 $ObjectToCache = @{ LastUpdate = (Get-Date); Date = $CurrentDate; Data = $GlobalData }
 $ObjectToCache | ConvertTo-Json -Depth 10 | Set-Content $CacheFile
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
