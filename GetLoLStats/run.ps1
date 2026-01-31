@@ -116,11 +116,28 @@ foreach ($Friend in $FriendsList) {
 
                     $DurMin = [math]::Max(1, $MatchData.info.gameDuration / 60)
                     
+                    # Calculate toxic pings (existing logic for toxicity badge)
+                    $ToxicPingsMatch = ($Me.enemyMissingPings ?? 0) + ($Me.pushPings ?? 0) + ($Me.baitPings ?? 0)
+                    
                     $MatchesDetails += @{
                         Champion = $Me.championName; Win = $Me.win; KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
                         KP = $KP; DmgShare = $DmgShare; DeathShare = $DeathShare
                         TeamKills = $TK; TeamDeaths = $TDeaths
-                        Pings = ($Me.enemyMissingPings + $Me.pushPings + $Me.baitPings)
+                        Pings = $ToxicPingsMatch
+                        # Detailed ping breakdown (for visual stats charts)
+                        AllInPings = ($Me.allInPings ?? 0)
+                        AssistMePings = ($Me.assistMePings ?? 0)
+                        BaitPings = ($Me.baitPings ?? 0)
+                        BasicPings = ($Me.basicPings ?? 0)
+                        CommandPings = ($Me.commandPings ?? 0)
+                        DangerPings = ($Me.dangerPings ?? 0)
+                        EnemyMissingPings = ($Me.enemyMissingPings ?? 0)
+                        EnemyVisionPings = ($Me.enemyVisionPings ?? 0)
+                        GetBackPings = ($Me.getBackPings ?? 0)
+                        HoldPings = ($Me.holdPings ?? 0)
+                        NeedVisionPings = ($Me.needVisionPings ?? 0)
+                        OnMyWayPings = ($Me.onMyWayPings ?? 0)
+                        PushPings = ($Me.pushPings ?? 0)
                         Date = $MatchData.info.gameEndTimestamp
                         DamageDealt = $Me.totalDamageDealtToChampions; DPM = [math]::Round($Me.totalDamageDealtToChampions / $DurMin, 0)
                         CS = ($Me.totalMinionsKilled + $Me.neutralMinionsKilled)
@@ -134,7 +151,7 @@ foreach ($Friend in $FriendsList) {
                         Pentas = $Me.pentaKills; Quadras = $Me.quadraKills
                     }
                     $TotalKills += $Me.kills; $TotalDeaths += $Me.deaths; $TotalAssists += $Me.assists; if ($Me.win) { $Wins++ }
-                    $TotalPings += ($Me.enemyMissingPings + $Me.pushPings + $Me.baitPings)
+                    $TotalPings += $ToxicPingsMatch
                 }
             }
         }
