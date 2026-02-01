@@ -92,16 +92,24 @@ foreach ($Friend in $FriendsList) {
             }
         }
 
-        # --- LAST 20 MATCHES ANALYSIS ---
-        $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=$NbMatchs&type=ranked"
+        # --- LAST 20 MATCHES ANALYSIS (excluding remakes) ---
+        # Fetch more matches to ensure we have 20 valid ones after filtering remakes
+        $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=30&type=ranked"
         $MatchesDetails = @(); $Wins = 0; $TotalKills = 0; $TotalDeaths = 0; $TotalAssists = 0; $TotalPings = 0
 
         foreach ($MatchId in $MatchIds) {
+            # Stop if we already have 20 valid matches
+            if ($MatchesDetails.Count -ge $NbMatchs) { break }
+            
             $MatchData = $null; $Me = $null; $TeamParticipants = $null
             $TK = 0; $TDmg = 0; $TDeaths = 0
 
             $MatchData = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/$MatchId"
             if ($MatchData -and $MatchData.info) {
+                # Skip remakes (games under 5 minutes)
+                $GameDurationMinutes = $MatchData.info.gameDuration / 60
+                if ($GameDurationMinutes -lt 5) { continue }
+                
                 $Me = $MatchData.info.participants | Where-Object { $_.puuid -eq $Puuid }
                 if ($Me) {
                     $TeamParticipants = $MatchData.info.participants | Where-Object { $_.teamId -eq $Me.teamId }
