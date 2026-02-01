@@ -187,9 +187,7 @@ foreach ($Friend in $FriendsList) {
             $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
-            
-            $AvgVision = [math]::Round(($MatchesDetails.Vision | Measure-Object -Average).Average, 0)
-            
+                        
             if ($AvgPingsCalc -gt 6) {
                 $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
             }
