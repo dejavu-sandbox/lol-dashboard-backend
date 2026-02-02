@@ -100,10 +100,8 @@ foreach ($Friend in $FriendsList) {
         }
 
         # --- LAST 20 MATCHES ANALYSIS (excluding remakes) ---
-        # Load cached matches for this player (if exists)
         $CachedMatches = @{}
         if ($CacheContent -and $CacheContent.Data.$Name -and $CacheContent.Data.$Name.CachedMatches) {
-            # Convert PSCustomObject to Hashtable (JSON deserialization creates PSCustomObject)
             foreach ($prop in $CacheContent.Data.$Name.CachedMatches.PSObject.Properties) {
                 $CachedMatches[$prop.Name] = $prop.Value
             }
@@ -121,16 +119,13 @@ foreach ($Friend in $FriendsList) {
         $CacheHits = 0; $ApiCalls = 0; $RemakesSkipped = 0
 
         foreach ($MatchId in $MatchIds) {
-            # Stop if we already have 20 valid matches
             if ($MatchesDetails.Count -ge $NbMatchs) { break }
             
-            # Check if match details are already in cache
             if ($CachedMatches.ContainsKey($MatchId)) {
-                # Reuse cached match details (no API call needed!)
                 $CachedMatchDetails = $CachedMatches[$MatchId]
                 
-                # Skip remakes that were cached
                 if ($CachedMatchDetails.IsRemake) {
+                    $NewCachedMatches[$MatchId] = $CachedMatchDetails
                     $RemakesSkipped++
                     continue
                 }
@@ -139,7 +134,6 @@ foreach ($Friend in $FriendsList) {
                 $NewCachedMatches[$MatchId] = $CachedMatchDetails
                 $CacheHits++
                 
-                # Update totals from cached data
                 $TotalKills += [int]($CachedMatchDetails.KDA -split '/')[0]
                 $TotalDeaths += [int]($CachedMatchDetails.KDA -split '/')[1]
                 $TotalAssists += [int]($CachedMatchDetails.KDA -split '/')[2]
@@ -148,7 +142,6 @@ foreach ($Friend in $FriendsList) {
                 continue
             }
             
-            # Not in cache - fetch from API
             $MatchData = $null; $Me = $null; $TeamParticipants = $null
             $TK = 0; $TDmg = 0; $TDeaths = 0
 
@@ -158,8 +151,7 @@ foreach ($Friend in $FriendsList) {
             if ($MatchData -and $MatchData.info) {
                 # Skip remakes (games under 5 minutes)
                 $GameDurationMinutes = $MatchData.info.gameDuration / 60
-                if ($GameDurationMinutes -lt 5) { 
-                    # Cache this as a remake to skip it next time too
+                if ($GameDurationMinutes -lt 5) {
                     $NewCachedMatches[$MatchId] = @{ IsRemake = $true }
                     $RemakesSkipped++
                     continue 
@@ -178,8 +170,6 @@ foreach ($Friend in $FriendsList) {
                     $DeathShare = [math]::Round(($Me.deaths / [math]::Max(1, $TDeaths)) * 100, 1)
 
                     $DurMin = [math]::Max(1, $MatchData.info.gameDuration / 60)
-                    
-                    # Calculate toxic pings (existing logic for toxicity badge)
                     $ToxicPingsMatch = ($Me.enemyMissingPings ?? 0) + ($Me.pushPings ?? 0) + ($Me.baitPings ?? 0)
                     
                     $MatchDetails = @{
@@ -214,7 +204,6 @@ foreach ($Friend in $FriendsList) {
                         Pentas = $Me.pentaKills; Quadras = $Me.quadraKills
                     }
                     
-                    # Add to arrays
                     $MatchesDetails += $MatchDetails
                     $NewCachedMatches[$MatchId] = $MatchDetails
                     
@@ -224,7 +213,6 @@ foreach ($Friend in $FriendsList) {
             }
         }
         
-        # Log final stats for this player
         Write-Host "  [STATS] $($MatchesDetails.Count) valid matches | Cache hits: $CacheHits | API calls: $ApiCalls | ⚠️ Remakes: $RemakesSkipped" -ForegroundColor Green
 
         # --- GLOBAL STATS CALCULATION ---
