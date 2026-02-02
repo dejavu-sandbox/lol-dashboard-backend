@@ -8,7 +8,7 @@ $NbMatchs = 20
 $DailyStatsPath = "C:\home\data\daily_stats.json"
 
 # CACHE
-$CacheFile = Join-Path $env:TEMP "lol_stats_cache_v12.json"
+$CacheFile = "C:\home\data\lol_stats_cache.json"
 $CurrentDate = (Get-Date).ToString("yyyyMMdd")
 
 $FriendsList = @("BlasterFly#EUW", "Megumin Full AP#EUW", "Gourdin Puissant#CHIER", "Green Goober#GOOB")
