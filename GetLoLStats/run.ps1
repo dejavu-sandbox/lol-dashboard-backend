@@ -26,14 +26,17 @@ function Get-TotalLP($tier, $rank, $lp) {
 }
 
 # --- CACHE MANAGEMENT ---
-# Always return cache if exists, unless forced refresh
 $ForceRefresh = $Request.Query.refresh -eq 'true'
+$CacheContent = $null
 
-if (!$ForceRefresh -and (Test-Path $CacheFile)) {
+# Load existing cache if it exists
+if (Test-Path $CacheFile) {
     try {
         $CacheContent = Get-Content $CacheFile -Raw | ConvertFrom-Json
-        if ($CacheContent.Date -eq $CurrentDate) {
-            # Return cached data with LastUpdate timestamp
+        
+        # If not forcing refresh and cache is from today, return it immediately
+        if (!$ForceRefresh -and $CacheContent.Date -eq $CurrentDate) {
+            Write-Host "[CACHE] F5 detected - Returning cached data (no API calls)" -ForegroundColor Cyan
             $ResponseData = @{ 
                 LastUpdate = $CacheContent.LastUpdate
                 Data = $CacheContent.Data 
@@ -42,7 +45,9 @@ if (!$ForceRefresh -and (Test-Path $CacheFile)) {
                 StatusCode = [HttpStatusCode]::OK; Body = $ResponseData | ConvertTo-Json -Depth 10; Headers = @{"Content-Type"="application/json"}
             }); return
         }
-    } catch { }
+    } catch { 
+        $CacheContent = $null
+    }
 }
 
 # --- LOAD DAILY SNAPSHOT ---
@@ -64,6 +69,8 @@ $GlobalData = @{}
 
 foreach ($Friend in $FriendsList) {
     $Parts = $Friend -split "#"; $Name = $Parts[0]; $Tag = $Parts[1]; $EncodedName = [uri]::EscapeDataString($Name)
+    Write-Host "[INFO] Processing player: $Name#$Tag" -ForegroundColor Cyan
+    
     $Account = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/riot/account/v1/accounts/by-riot-id/$EncodedName/$Tag"
     
     if ($Account) {
@@ -93,22 +100,70 @@ foreach ($Friend in $FriendsList) {
         }
 
         # --- LAST 20 MATCHES ANALYSIS (excluding remakes) ---
+        # Load cached matches for this player (if exists)
+        $CachedMatches = @{}
+        if ($CacheContent -and $CacheContent.Data.$Name -and $CacheContent.Data.$Name.CachedMatches) {
+            # Convert PSCustomObject to Hashtable (JSON deserialization creates PSCustomObject)
+            foreach ($prop in $CacheContent.Data.$Name.CachedMatches.PSObject.Properties) {
+                $CachedMatches[$prop.Name] = $prop.Value
+            }
+            Write-Host "  [CACHE] Loaded: $($CachedMatches.Count) matches" -ForegroundColor Green
+        } else {
+            Write-Host "  [CACHE] No cache found, starting fresh" -ForegroundColor Yellow
+        }
+        
         # Fetch more matches to ensure we have 20 valid ones after filtering remakes
         $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=30&type=ranked"
+        Write-Host "  [API] Fetched $($MatchIds.Count) match IDs" -ForegroundColor Gray
+        
         $MatchesDetails = @(); $Wins = 0; $TotalKills = 0; $TotalDeaths = 0; $TotalAssists = 0; $TotalPings = 0
+        $NewCachedMatches = @{}
+        $CacheHits = 0; $ApiCalls = 0; $RemakesSkipped = 0
 
         foreach ($MatchId in $MatchIds) {
             # Stop if we already have 20 valid matches
             if ($MatchesDetails.Count -ge $NbMatchs) { break }
             
+            # Check if match details are already in cache
+            if ($CachedMatches.ContainsKey($MatchId)) {
+                # Reuse cached match details (no API call needed!)
+                $CachedMatchDetails = $CachedMatches[$MatchId]
+                
+                # Skip remakes that were cached
+                if ($CachedMatchDetails.IsRemake) {
+                    $RemakesSkipped++
+                    continue
+                }
+                
+                $MatchesDetails += $CachedMatchDetails
+                $NewCachedMatches[$MatchId] = $CachedMatchDetails
+                $CacheHits++
+                
+                # Update totals from cached data
+                $TotalKills += [int]($CachedMatchDetails.KDA -split '/')[0]
+                $TotalDeaths += [int]($CachedMatchDetails.KDA -split '/')[1]
+                $TotalAssists += [int]($CachedMatchDetails.KDA -split '/')[2]
+                if ($CachedMatchDetails.Win) { $Wins++ }
+                $TotalPings += $CachedMatchDetails.Pings
+                continue
+            }
+            
+            # Not in cache - fetch from API
             $MatchData = $null; $Me = $null; $TeamParticipants = $null
             $TK = 0; $TDmg = 0; $TDeaths = 0
 
             $MatchData = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/$MatchId"
+            $ApiCalls++
+            
             if ($MatchData -and $MatchData.info) {
                 # Skip remakes (games under 5 minutes)
                 $GameDurationMinutes = $MatchData.info.gameDuration / 60
-                if ($GameDurationMinutes -lt 5) { continue }
+                if ($GameDurationMinutes -lt 5) { 
+                    # Cache this as a remake to skip it next time too
+                    $NewCachedMatches[$MatchId] = @{ IsRemake = $true }
+                    $RemakesSkipped++
+                    continue 
+                }
                 
                 $Me = $MatchData.info.participants | Where-Object { $_.puuid -eq $Puuid }
                 if ($Me) {
@@ -127,7 +182,7 @@ foreach ($Friend in $FriendsList) {
                     # Calculate toxic pings (existing logic for toxicity badge)
                     $ToxicPingsMatch = ($Me.enemyMissingPings ?? 0) + ($Me.pushPings ?? 0) + ($Me.baitPings ?? 0)
                     
-                    $MatchesDetails += @{
+                    $MatchDetails = @{
                         Champion = $Me.championName; Win = $Me.win; KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
                         KP = $KP; DmgShare = $DmgShare; DeathShare = $DeathShare
                         TeamKills = $TK; TeamDeaths = $TDeaths
@@ -158,11 +213,19 @@ foreach ($Friend in $FriendsList) {
                         EnemyChamp = ($MatchData.info.participants | Where-Object { $_.teamPosition -eq $Me.teamPosition -and $_.teamId -ne $Me.teamId }).championName
                         Pentas = $Me.pentaKills; Quadras = $Me.quadraKills
                     }
+                    
+                    # Add to arrays
+                    $MatchesDetails += $MatchDetails
+                    $NewCachedMatches[$MatchId] = $MatchDetails
+                    
                     $TotalKills += $Me.kills; $TotalDeaths += $Me.deaths; $TotalAssists += $Me.assists; if ($Me.win) { $Wins++ }
                     $TotalPings += $ToxicPingsMatch
                 }
             }
         }
+        
+        # Log final stats for this player
+        Write-Host "  [STATS] $($MatchesDetails.Count) valid matches | Cache hits: $CacheHits | API calls: $ApiCalls | ⚠️ Remakes: $RemakesSkipped" -ForegroundColor Green
 
         # --- GLOBAL STATS CALCULATION ---
         $GamesCount = $MatchesDetails.Count
@@ -244,13 +307,15 @@ foreach ($Friend in $FriendsList) {
                 AvgPings = $AvgPingsCalc;
                 History = $MatchesDetails; ProfileIcon = $Summoner.profileIconId;
                 TotalPentas = $TotalPentasSum; TotalQuadras = $TotalQuadrasSum;
-                Badges = $Badges
+                Badges = $Badges;
+                CachedMatches = $NewCachedMatches  # Store match cache for next refresh
             }
         }
     }
 }
 
 # --- SAVE AND RESPONSE ---
+Write-Host "✅ Processing complete! Saving cache..." -ForegroundColor Green
 $ObjectToCache = @{ LastUpdate = (Get-Date); Date = $CurrentDate; Data = $GlobalData }
 $ObjectToCache | ConvertTo-Json -Depth 10 | Set-Content $CacheFile
 
