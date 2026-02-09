@@ -285,6 +285,112 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "farmer"; Spell = "NasusQ"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
 
+            # --- PRE-CALCULATE FRONT-END DATA ---
+            # 1. RankScore for sorting
+            $RankScore = 0
+            if ($RankObj) {
+                $RankScore = Get-TotalLP -tier $RankObj.tier -rank $RankObj.rank -lp $RankObj.leaguePoints
+            } else {
+                $RankScore = -10000  # Unranked
+            }
+
+            # 2. TopChampions stats (Top 5 + Others)
+            $ChampStatsDict = @{}
+            foreach ($m in $MatchesDetails) {
+                $champ = $m.Champion
+                if (-not $ChampStatsDict.ContainsKey($champ)) {
+                    $ChampStatsDict[$champ] = @{ Count = 0; Wins = 0; Losses = 0 }
+                }
+                $ChampStatsDict[$champ].Count++
+                if ($m.Win) { $ChampStatsDict[$champ].Wins++ } else { $ChampStatsDict[$champ].Losses++ }
+            }
+            
+            $TopChampions = @()
+            $SortedChamps = $ChampStatsDict.GetEnumerator() | Sort-Object { $_.Value.Count } -Descending
+            $Top5Champs = $SortedChamps | Select-Object -First 5
+            $Top5Total = 0
+            foreach ($c in $Top5Champs) {
+                $TopChampions += @{ 
+                    Name = $c.Key
+                    Count = $c.Value.Count
+                    Wins = $c.Value.Wins
+                    Losses = $c.Value.Losses
+                }
+                $Top5Total += $c.Value.Count
+            }
+            
+            # Add "Others" if necessary
+            if ($Top5Total -lt $GamesCount) {
+                $OthersWins = 0
+                $OthersLosses = 0
+                foreach ($m in $MatchesDetails) {
+                    $isInTop5 = $false
+                    foreach ($tc in $Top5Champs) {
+                        if ($tc.Key -eq $m.Champion) { $isInTop5 = $true; break }
+                    }
+                    if (-not $isInTop5) {
+                        if ($m.Win) { $OthersWins++ } else { $OthersLosses++ }
+                    }
+                }
+                $TopChampions += @{
+                    Name = "Autres"
+                    Count = $GamesCount - $Top5Total
+                    Wins = $OthersWins
+                    Losses = $OthersLosses
+                }
+            }
+
+            # 3. RoleStats
+            $RoleStatsDict = @{}
+            foreach ($m in $MatchesDetails) {
+                $role = $m.Role
+                if (-not $RoleStatsDict.ContainsKey($role)) {
+                    $RoleStatsDict[$role] = @{ Count = 0; Wins = 0; Losses = 0 }
+                }
+                $RoleStatsDict[$role].Count++
+                if ($m.Win) { $RoleStatsDict[$role].Wins++ } else { $RoleStatsDict[$role].Losses++ }
+            }
+            
+            $RoleStats = @()
+            foreach ($r in $RoleStatsDict.GetEnumerator()) {
+                $RoleStats += @{
+                    Name = $r.Key
+                    Count = $r.Value.Count
+                    Wins = $r.Value.Wins
+                    Losses = $r.Value.Losses
+                }
+            }
+
+            # 4. WorstPingGame (match with most pings)
+            $WorstPingGame = $null
+            $MaxPingsInGame = 0
+            foreach ($m in $MatchesDetails) {
+                $totalPings = $m.Pings
+                if ($totalPings -gt $MaxPingsInGame) {
+                    $MaxPingsInGame = $totalPings
+                    $WorstPingGame = @{
+                        Champion = $m.Champion
+                        TotalPings = $totalPings
+                        Win = $m.Win
+                        KDA = $m.KDA
+                        Date = $m.Date
+                        AllInPings = $m.AllInPings
+                        AssistMePings = $m.AssistMePings
+                        BaitPings = $m.BaitPings
+                        BasicPings = $m.BasicPings
+                        CommandPings = $m.CommandPings
+                        DangerPings = $m.DangerPings
+                        EnemyMissingPings = $m.EnemyMissingPings
+                        EnemyVisionPings = $m.EnemyVisionPings
+                        GetBackPings = $m.GetBackPings
+                        HoldPings = $m.HoldPings
+                        NeedVisionPings = $m.NeedVisionPings
+                        OnMyWayPings = $m.OnMyWayPings
+                        PushPings = $m.PushPings
+                    }
+                }
+            }
+
             $GlobalData[$Name] = @{
                 Tag = $Tag; Rank = $RankString; DailyLp = $DailyTrend; 
                 GlobalWinrate = $GlobalWR; GlobalGames = $GlobalGames; # Season
@@ -296,7 +402,12 @@ foreach ($Friend in $FriendsList) {
                 History = $MatchesDetails; ProfileIcon = $Summoner.profileIconId;
                 TotalPentas = $TotalPentasSum; TotalQuadras = $TotalQuadrasSum;
                 Badges = $Badges;
-                CachedMatches = $NewCachedMatches  # Store match cache for next refresh
+                CachedMatches = $NewCachedMatches;  # Store match cache for next refresh
+                # Pre-calculated front-end data
+                RankScore = $RankScore;
+                TopChampions = $TopChampions;
+                RoleStats = $RoleStats;
+                WorstPingGame = $WorstPingGame;
             }
         }
     }
