@@ -246,6 +246,9 @@ foreach ($Friend in $FriendsList) {
             $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
+            
+            # Avg pinks/game excluding support games
+            $AvgPinks = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.Pinks | Measure-Object -Average).Average, 1) } else { 0 }
                         
             if ($AvgPingsCalc -gt 6) {
                 $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
@@ -286,6 +289,9 @@ foreach ($Friend in $FriendsList) {
             }
             if ($WinrateCalc -le 30) {
                 $Badges += @{ Type = "lowwr"; LocalIcon = "img/emoteBeeCry.png"; Title = "🐝 CURSED: Elo Hell Resident! Winrate( Last 20) <= 30%" }
+            }
+            if ($AvgPinks -lt 2 -and $NonSupportCount -ge 3) {
+                $Badges += @{ Type = "blind"; Icon = "6058"; Title = "👁️ BLIND: Ward Allergic! (Avg ${AvgPinks} pinks/game on non-support roles)" }
             }
 
             # --- PRE-CALCULATE FRONT-END DATA ---
