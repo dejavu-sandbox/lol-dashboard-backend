@@ -284,6 +284,9 @@ foreach ($Friend in $FriendsList) {
             if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
                 $Badges += @{ Type = "farmer"; Spell = "NasusQ"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
+            if ($WinrateCalc -le 30) {
+                $Badges += @{ Type = "lowwr"; LocalIcon = "img/emoteBeeCry.png"; Title = "🐝 CURSED: Elo Hell Resident! Winrate(20) <= 30% (current: ${WinrateCalc}%)" }
+            }
 
             # --- PRE-CALCULATE FRONT-END DATA ---
             # 1. RankScore for sorting
