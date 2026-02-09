@@ -279,13 +279,13 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "unkillable"; Spell = "SummonerBarrier"; Title = "🛡️ UNKILLABLE: Invincible! (Only ${AvgDeathShare}% of team deaths)" }
             }
             if ($AvgDmgShare -gt 30) {
-                $Badges += @{ Type = "carry"; Spell = "SummonerIgnite"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
+                $Badges += @{ Type = "carry"; LocalIcon = "img/FakerShh.png"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
             }
             if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
                 $Badges += @{ Type = "farmer"; Spell = "NasusQ"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
             }
             if ($WinrateCalc -le 30) {
-                $Badges += @{ Type = "lowwr"; LocalIcon = "img/emoteBeeCry.png"; Title = "🐝 CURSED: Elo Hell Resident! Winrate(20) <= 30% (current: ${WinrateCalc}%)" }
+                $Badges += @{ Type = "lowwr"; LocalIcon = "img/emoteBeeCry.png"; Title = "🐝 CURSED: Elo Hell Resident! Winrate( Last 20) <= 30%" }
             }
 
             # --- PRE-CALCULATE FRONT-END DATA ---
