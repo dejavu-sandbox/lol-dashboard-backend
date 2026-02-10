@@ -240,24 +240,22 @@ foreach ($Friend in $FriendsList) {
             # Additional calculations for badges
             $ChampCounts = $MatchesDetails.Champion | Group-Object | Sort-Object Count -Descending
             $TopChampCount = ($ChampCounts | Select-Object -First 1).Count
-            $AvgDmgShare = [math]::Round(($MatchesDetails.DmgShare | Measure-Object -Average).Average, 1)
             
-            # CS/min excluding support games
+            # CS/min, damage share, and pinks excluding support games
             $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
-            
-            # Avg pinks/game excluding support games
+            $AvgDmgShare = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.DmgShare | Measure-Object -Average).Average, 1) } else { 0 }
             $AvgPinks = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.Pinks | Measure-Object -Average).Average, 1) } else { 0 }
                         
             if ($AvgPingsCalc -gt 6) {
                 $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
             }
             if ($IsWinStreak -and $StreakCount -ge 4) {
-                $Badges += @{ Type = "fire"; Spell = "SummonerDot"; Title = "🔥 ON FIRE: Unstoppable! ($StreakCount+ Wins)" }
+                $Badges += @{ Type = "fire"; Spell = "SummonerDot"; Title = "🔥 ON FIRE: Unstoppable! (>=4 Win Streak)" }
             }
             if (-not $IsWinStreak -and $StreakCount -ge 4) {
-                $Badges += @{ Type = "sad"; Spell = "AuraofDespair"; Title = "😢 SAD: Tough day? ($StreakCount+ Losses)" }
+                $Badges += @{ Type = "sad"; Spell = "AuraofDespair"; Title = "😢 SAD: Tough day? (>=4 Loss Streak)" }
             }
             if ($WinrateCalc -ge 60) {
                 $Badges += @{ Type = "smurf"; Spell = "UndyingRage"; Title = "👑 SMURF: Built Different! (Winrate >= 60% on last 20 games)" }
@@ -270,19 +268,19 @@ foreach ($Friend in $FriendsList) {
             }
             if ($TopChampCount -ge 13) {
                 $TopChampName = ($ChampCounts | Select-Object -First 1).Name
-                $Badges += @{ Type = "otp"; LocalIcon = "img/oneTrickPony.png"; Champion = $TopChampName; Title = "🎯 OTP: $TopChampName Specialist! ($TopChampCount/20 games)" }
+                $Badges += @{ Type = "otp"; LocalIcon = "img/oneTrickPony.png"; Champion = $TopChampName; Title = "🎯 OTP: $TopChampName Specialist! (Played same champ >=13/20 games, Current: $TopChampCount/20)" }
             }
             if ($TopChampCount -le 5 -and $GamesCount -ge 20) {
                 $Badges += @{ Type = "versatile"; Icon = "4409"; Title = "🎭 VERSATILE: Jack of All Champs! (No dominant pick)" }
             }
-            if ($AvgDeathShare -gt 25) {
-                $Badges += @{ Type = "death_magnet"; Spell = "Revive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Avg ${AvgDeathShare}% of team deaths)" }
+            if ($AvgDeathShare -gt 20) {
+                $Badges += @{ Type = "death_magnet"; Spell = "Revive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Rule: >20%, Current: ${AvgDeathShare}% of team deaths)" }
             }
             if ($AvgDeathShare -lt 15 -and $GamesCount -ge 10) {
-                $Badges += @{ Type = "unkillable"; Spell = "SummonerBarrier"; Title = "🛡️ UNKILLABLE: Invincible! (Only ${AvgDeathShare}% of team deaths)" }
+                $Badges += @{ Type = "unkillable"; Spell = "SummonerBarrier"; Title = "🛡️ UNKILLABLE: Invincible! (<15% of team deaths)" }
             }
-            if ($AvgDmgShare -gt 30) {
-                $Badges += @{ Type = "carry"; LocalIcon = "img/FakerShh.png"; Title = "⚔️ CARRY: Team's Damage Dealer! (Avg ${AvgDmgShare}% team damage)" }
+            if ($AvgDmgShare -gt 25 -and $NonSupportCount -ge 3) {
+                $Badges += @{ Type = "carry"; LocalIcon = "img/FakerShh.png"; Title = "⚔️ CARRY: Team's Damage Dealer! (>25% team damage, Current: ${AvgDmgShare}%)" }
             }
             if ($AvgCSMin -gt 8 -and $NonSupportCount -ge 3) {
                 $Badges += @{ Type = "farmer"; Spell = "NasusQ"; Title = "🌾 FARM MACHINE: Minion Slayer! (${AvgCSMin} CS/min avg)" }
@@ -291,7 +289,7 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "lowwr"; LocalIcon = "img/emoteBeeCry.png"; Title = "🐝 CURSED: Elo Hell Resident! Winrate( Last 20) <= 30%" }
             }
             if ($AvgPinks -lt 2 -and $NonSupportCount -ge 3) {
-                $Badges += @{ Type = "blind"; Icon = "6058"; Title = "👁️ BLIND: Ward Allergic! (Avg ${AvgPinks} pinks/game on non-support roles)" }
+                $Badges += @{ Type = "blind"; Icon = "6058"; Title = "👁️ BLIND: Ward Allergic! Average Pinks < 2/game (current: ${AvgPinks} pinks/game on non-support roles)" }
             }
 
             # --- PRE-CALCULATE FRONT-END DATA ---
