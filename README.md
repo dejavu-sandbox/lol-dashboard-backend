@@ -47,6 +47,7 @@ lol-dashboard-backend/
 - Megumin Full AP (EUW)
 - BlasterFly (EUW)
 - Green Goober (GOOB)
+- Macon Capule (CHIER)
 
 ## 🔐 Security & CORS
 
@@ -114,6 +115,41 @@ Response: { tier, rank, lp, totalLP, winRate, summonerId, ... }
 
 ### SnapshotDailyLP
 Runs automatically on schedule. Stores snapshots in configured data path.
+
+## 🏆 Badge System
+
+14 achievement badges calculated over the last 20 matches:
+
+**Performance Badges:**
+- **ON FIRE:** ≥4 win streak
+- **SAD:** ≥4 loss streak
+- **CARRY:** >26% team damage share
+- **UNKILLABLE:** <15% team deaths
+- **DEATH MAGNET:** >20% team deaths
+- **FARMER:** ≥8.5 CS/min average
+
+**Champion Mastery:**
+- **OTP (One-Trick Pony):** ≥13/20 games on same champion
+- **VERSATILE:** ≥7 different champions played
+
+**Special Achievements:**
+- **PENTA KILL:** Achieved pentakill in recent matches
+- **QUADRA KILL:** Achieved quadrakill in recent matches
+- **SMURF:** Rank tier changed during tracked period
+- **TOXIC:** ≥3 average deaths in won games
+- **LOWWR:** <45% win rate with ≥10 games played
+- **BLIND:** <20% average vision score
+
+## ⚙️ Technical Implementation
+
+**Match Processing:**
+- **Filtering:** Remakes (games <5 minutes) are excluded from calculations
+- **Sample Size:** Statistics calculated over last 20 ranked matches
+- **Caching:** Per-match cache system (`lol_stats_cache.json`) to minimize Riot API calls
+
+**Data Storage:**
+- Match statistics cache: `lol_stats_cache.json`
+- Daily LP snapshots: `daily_stats.json`
 
 ## 📚 Future Enhancements
 
