@@ -25,6 +25,18 @@ function Get-TotalLP($tier, $rank, $lp) {
     return $base + ($rankScores[$rank] ?? 0) + $lp
 }
 
+# --- CHAMPION NAME NORMALIZATION ---
+function Normalize-ChampionName($championName) {
+    # Fix champion names that don't match DDragon file names
+    $nameMap = @{
+        "FiddleSticks" = "Fiddlesticks"
+    }
+    if ($nameMap.ContainsKey($championName)) {
+        return $nameMap[$championName]
+    }
+    return $championName
+}
+
 # --- CACHE MANAGEMENT ---
 $ForceRefresh = $Request.Query.refresh -eq 'true'
 $CacheContent = $null
@@ -173,7 +185,7 @@ foreach ($Friend in $FriendsList) {
                     $ToxicPingsMatch = ($Me.enemyMissingPings ?? 0) + ($Me.pushPings ?? 0) + ($Me.baitPings ?? 0)
                     
                     $MatchDetails = @{
-                        Champion = $Me.championName; Win = $Me.win; KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
+                        Champion = Normalize-ChampionName $Me.championName; Win = $Me.win; KDA = "$($Me.kills)/$($Me.deaths)/$($Me.assists)"
                         KP = $KP; DmgShare = $DmgShare; DeathShare = $DeathShare
                         TeamKills = $TK; TeamDeaths = $TDeaths
                         Pings = $ToxicPingsMatch
