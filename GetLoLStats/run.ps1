@@ -123,7 +123,7 @@ foreach ($Friend in $FriendsList) {
         }
         
         # Fetch more matches to ensure we have 20 valid ones after filtering remakes
-        $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=30&type=ranked"
+        $MatchIds = Invoke-RiotApi -Url "https://$Route.api.riotgames.com/lol/match/v5/matches/by-puuid/$Puuid/ids?start=0&count=30&queue=420"
         Write-Host "  [API] Fetched $($MatchIds.Count) match IDs" -ForegroundColor Gray
         
         $MatchesDetails = @(); $Wins = 0; $TotalKills = 0; $TotalDeaths = 0; $TotalAssists = 0; $TotalPings = 0
