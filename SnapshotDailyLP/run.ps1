@@ -24,7 +24,7 @@ function Invoke-RiotApi {
 }
 
 function Get-TotalLP($tier, $rank, $lp) {
-    $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800}
+    $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800;"GRANDMASTER"=5000;"CHALLENGER"=6000}
     $rankScores = @{"IV"=0;"III"=100;"II"=200;"I"=300}
     $base = $tierScores[$tier]
     if ($null -eq $base) { return 0 }

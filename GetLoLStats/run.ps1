@@ -17,7 +17,7 @@ $Region = "euw1"
 
 # --- TOTAL LP CALCULATION FUNCTION ---
 function Get-TotalLP($tier, $rank, $lp) {
-    $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800}
+    $tierScores = @{"IRON"=0;"BRONZE"=400;"SILVER"=800;"GOLD"=1200;"PLATINUM"=1600;"EMERALD"=2000;"DIAMOND"=2400;"MASTER"=2800;"GRANDMASTER"=5000;"CHALLENGER"=6000}
     $rankScores = @{"IV"=0;"III"=100;"II"=200;"I"=300}
     $base = $tierScores[$tier]
     if ($null -eq $base) { return 0 }
@@ -260,8 +260,8 @@ foreach ($Friend in $FriendsList) {
             $AvgDmgShare = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.DmgShare | Measure-Object -Average).Average, 1) } else { 0 }
             $AvgPinks = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.Pinks | Measure-Object -Average).Average, 1) } else { 0 }
                         
-            if ($AvgPingsCalc -gt 6) {
-                $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 6+ 'Missing' or 'Push Forward' pings per game)" }
+            if ($AvgPingsCalc -gt 8) {
+                $Badges += @{ Type = "toxic"; Spell = "TeemoR"; Title = "🍄 TOXIC: Mad Pinger! (Averaging 8+ 'Missing' or 'Push Forward' pings per game)" }
             }
             if ($IsWinStreak -and $StreakCount -ge 4) {
                 $Badges += @{ Type = "fire"; Spell = "SummonerDot"; Title = "🔥 ON FIRE: Unstoppable! (>=4 Win Streak)" }
