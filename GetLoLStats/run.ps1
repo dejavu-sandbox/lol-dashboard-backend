@@ -11,7 +11,7 @@ $DailyStatsPath = "C:\home\data\daily_stats.json"
 $CacheFile = "C:\home\data\lol_stats_cache.json"
 $CurrentDate = (Get-Date).ToString("yyyyMMdd")
 
-$FriendsList = @("Megumin Full AP#EUW", "Voidlux#mrm")
+$FriendsList = @("Megumin Full AP#EUW", "Voidlux#mrm", "Knurble Lux#EUW", "Mingzoo69#EUW")
 $Route = "europe"
 $Region = "euw1"
 

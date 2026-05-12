@@ -7,7 +7,9 @@ $FilePath = "C:\home\data\daily_stats.json"
 
 $Players = @(
     @{ Name = "Voidlux"; Tag = "mrm" },
-    @{ Name = "Megumin Full AP"; Tag = "EUW" }
+    @{ Name = "Megumin Full AP"; Tag = "EUW" },
+    @{ Name = "Knurble Lux"; Tag = "EUW" },
+    @{ Name = "Mingzoo69"; Tag = "EUW" }
 )
 
 # --- TA FONCTION API ---
