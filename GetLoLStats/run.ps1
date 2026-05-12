@@ -11,7 +11,7 @@ $DailyStatsPath = "C:\home\data\daily_stats.json"
 $CacheFile = "C:\home\data\lol_stats_cache.json"
 $CurrentDate = (Get-Date).ToString("yyyyMMdd")
 
-$FriendsList = @("BlasterFly#EUW", "Megumin Full AP#EUW", "Gourdin Puissant#CHIER", "Green Goober#GOOB", "Macon Capule#CHIER")
+$FriendsList = @("Megumin Full AP#EUW", "Voidlux#mrm")
 $Route = "europe"
 $Region = "euw1"
 
@@ -286,7 +286,7 @@ foreach ($Friend in $FriendsList) {
                 $Badges += @{ Type = "versatile"; Icon = "4409"; Title = "🎭 VERSATILE: Jack of All Champs! (No dominant pick)" }
             }
             if ($AvgDeathShare -gt 20) {
-                $Badges += @{ Type = "death_magnet"; Spell = "Revive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Rule: >20%, Current: ${AvgDeathShare}% of team deaths)" }
+                $Badges += @{ Type = "death_magnet"; Passive = "Karthus_Passive"; Title = "💀 DEATH MAGNET: Professional Respawn Speedrunner! (Rule: >20%, Current: ${AvgDeathShare}% of team deaths)" }
             }
             if ($AvgDeathShare -lt 15 -and $GamesCount -ge 10) {
                 $Badges += @{ Type = "unkillable"; Spell = "SummonerBarrier"; Title = "🛡️ UNKILLABLE: Invincible! (<15% of team deaths)" }
