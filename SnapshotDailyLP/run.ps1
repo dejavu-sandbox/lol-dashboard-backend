@@ -6,10 +6,8 @@ $ApiKey = $env:RiotApiKey
 $FilePath = "C:\home\data\daily_stats.json"
 
 $Players = @(
-    @{ Name = "Gourdin Puissant"; Tag = "CHIER" },
-    @{ Name = "Megumin Full AP"; Tag = "EUW" },
-    @{ Name = "BlasterFly"; Tag = "EUW" },
-    @{ Name = "Green Goober"; Tag = "GOOB" }
+    @{ Name = "Voidlux"; Tag = "mrm" },
+    @{ Name = "Megumin Full AP"; Tag = "EUW" }
 )
 
 # --- TA FONCTION API ---
