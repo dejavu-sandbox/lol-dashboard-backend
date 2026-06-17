@@ -216,6 +216,7 @@ foreach ($Friend in $FriendsList) {
                         DamageDealt = $Me.totalDamageDealtToChampions; DPM = [math]::Round($Me.totalDamageDealtToChampions / $DurMin, 0)
                         CS = ($Me.totalMinionsKilled + $Me.neutralMinionsKilled)
                         CSMin = [math]::Round(($Me.totalMinionsKilled + $Me.neutralMinionsKilled) / $DurMin, 1)
+                        CSMin10 = if ($Me.challenges -and $null -ne $Me.challenges.laneMinionsFirst10Minutes) { [math]::Round($Me.challenges.laneMinionsFirst10Minutes / 10.0, 1) } else { $null }
                         Gold = $Me.goldEarned; GoldMin = [math]::Round($Me.goldEarned / $DurMin, 0)
                         Vision = $Me.visionScore; Pinks = ($Me.visionWardsBoughtInGame ?? 0)
                         Heal = $Me.totalHeal; DamageTaken = $Me.totalDamageTaken; DmgObj = $Me.damageDealtToObjectives
@@ -267,6 +268,8 @@ foreach ($Friend in $FriendsList) {
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
             $AvgDmgShare = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.DmgShare | Measure-Object -Average).Average, 1) } else { 0 }
+            $NonSupWith10 = $NonSupportMatches | Where-Object { $null -ne $_.CSMin10 }
+            $AvgCSMin10 = if ($NonSupWith10.Count -gt 0) { [math]::Round(($NonSupWith10.CSMin10 | Measure-Object -Average).Average, 1) } else { $null }
             $AvgPinks = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.Pinks | Measure-Object -Average).Average, 1) } else { 0 }
                         
             if ($AvgPingsCalc -gt 8) {
@@ -425,7 +428,7 @@ foreach ($Friend in $FriendsList) {
                 Winrate = $WinrateCalc; # Last 20
                 AvgKDA = $KDA;
                 AvgKP = $AvgKP; AvgDeathShare = $AvgDeathShare; MainChamp = $MainChamp;
-                AvgCSMin = $AvgCSMin; AvgDmgShare = $AvgDmgShare;
+                AvgCSMin = $AvgCSMin; AvgDmgShare = $AvgDmgShare; AvgCSMin10 = $AvgCSMin10;
                 StreakType = if ($IsWinStreak) { "Win" } else { "Loss" }; StreakCount = $StreakCount;
                 AvgPings = $AvgPingsCalc;
                 History = $MatchesDetails; ProfileIcon = $Summoner.profileIconId;
