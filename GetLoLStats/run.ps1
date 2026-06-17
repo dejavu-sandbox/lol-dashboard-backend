@@ -150,17 +150,17 @@ foreach ($Friend in $FriendsList) {
                     $RemakesSkipped++
                     continue
                 }
-                
+
                 $MatchesDetails += $CachedMatchDetails
-                $NewCachedMatches[$MatchId] = $CachedMatchDetails
-                $CacheHits++
-                
-                $TotalKills += [int]($CachedMatchDetails.KDA -split '/')[0]
-                $TotalDeaths += [int]($CachedMatchDetails.KDA -split '/')[1]
-                $TotalAssists += [int]($CachedMatchDetails.KDA -split '/')[2]
-                if ($CachedMatchDetails.Win) { $Wins++ }
-                $TotalPings += $CachedMatchDetails.Pings
-                continue
+                    $NewCachedMatches[$MatchId] = $CachedMatchDetails
+                    $CacheHits++
+                    
+                    $TotalKills += [int]($CachedMatchDetails.KDA -split '/')[0]
+                    $TotalDeaths += [int]($CachedMatchDetails.KDA -split '/')[1]
+                    $TotalAssists += [int]($CachedMatchDetails.KDA -split '/')[2]
+                    if ($CachedMatchDetails.Win) { $Wins++ }
+                    $TotalPings += $CachedMatchDetails.Pings
+                    continue
             }
             
             $MatchData = $null; $Me = $null; $TeamParticipants = $null
@@ -266,7 +266,7 @@ foreach ($Friend in $FriendsList) {
             $TopChampCount = ($ChampCounts | Select-Object -First 1).Count
             
             # CS/min, damage share, and pinks excluding support games
-            $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" }
+            $NonSupportMatches = $MatchesDetails | Where-Object { $_.Role -ne "SUPPORT" -and $_.Role -ne "JUNGLE" }
             $NonSupportCount = $NonSupportMatches.Count
             $AvgCSMin = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.CSMin | Measure-Object -Average).Average, 1) } else { 0 }
             $AvgDmgShare = if ($NonSupportCount -gt 0) { [math]::Round(($NonSupportMatches.DmgShare | Measure-Object -Average).Average, 1) } else { 0 }
