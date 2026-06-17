@@ -105,7 +105,16 @@ foreach ($Friend in $FriendsList) {
                 if ($DailyStats.PSObject.Properties.Match($Name).Count -gt 0) {
                     $snapshot = $DailyStats.$Name
                     $currentScore = Get-TotalLP -tier $RankObj.tier -rank $RankObj.rank -lp $RankObj.leaguePoints
-                    $diff = $currentScore - $snapshot.totalScore
+                    # In apex tiers (Master/GM/Challenger), LP is preserved on promotion.
+                    # Comparing totalScore would show a huge false spike due to tier base offsets.
+                    # Instead, compare raw LP directly when a tier transition occurred within apex.
+                    $apexTiers = @("MASTER", "GRANDMASTER", "CHALLENGER")
+                    if ($snapshot.tier -and $snapshot.tier -ne $RankObj.tier -and
+                        ($apexTiers -contains $RankObj.tier) -and ($apexTiers -contains $snapshot.tier)) {
+                        $diff = $RankObj.leaguePoints - [int]$snapshot.lp
+                    } else {
+                        $diff = $currentScore - $snapshot.totalScore
+                    }
                     $DailyTrend = if ($diff -gt 0) { "+$diff LP" } elseif ($diff -lt 0) { "$diff LP" } else { "Even" }
                 }
             }
@@ -416,6 +425,7 @@ foreach ($Friend in $FriendsList) {
                 Winrate = $WinrateCalc; # Last 20
                 AvgKDA = $KDA;
                 AvgKP = $AvgKP; AvgDeathShare = $AvgDeathShare; MainChamp = $MainChamp;
+                AvgCSMin = $AvgCSMin; AvgDmgShare = $AvgDmgShare;
                 StreakType = if ($IsWinStreak) { "Win" } else { "Loss" }; StreakCount = $StreakCount;
                 AvgPings = $AvgPingsCalc;
                 History = $MatchesDetails; ProfileIcon = $Summoner.profileIconId;
